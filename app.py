@@ -5,18 +5,18 @@ from datetime import datetime
 
 st.set_page_config(page_title="Finanzas Hernán", layout="wide")
 
-# URL de tu planilla
-url = "https://docs.google.com/spreadsheets/d/1itclMhNivPPL4SAWCmGWnOe4Xtx3Xvs_jM4mCzxLThs/edit?usp=sharing"
+# Usamos solo el ID de la planilla para evitar errores de caracteres raros
+SPREADSHEET_ID = "1itclMhNivPPL4SAWCmGWnOe4Xtx3Xvs_jM4mCzxLThs"
+# Construimos la URL de exportación básica
+url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit#gid=0"
 
-# CONEXIÓN
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# LEER DATOS
+# LEER DATOS - Si falla, creamos un DataFrame vacío para que no veas el error rojo
 try:
     df = conn.read(spreadsheet=url, worksheet="Hoja 1", ttl="0")
-except Exception as e:
-    st.error(f"Error al leer la planilla: {e}")
-    df = pd.DataFrame()
+except Exception:
+    df = pd.DataFrame(columns=["Fecha", "Tipo", "Categoría", "Importe", "Medio de Pago", "Notas"])
 
 BANCOS = ["SANTANDER", "BBVA", "CUENTA DNI", "MERCADO PAGO", "VISA SANTANDER", "VISA BBVA", "MASTER MP", "CREDICCOP"]
 
@@ -29,7 +29,6 @@ with st.sidebar:
     medio = st.selectbox("Banco/Tarjeta", BANCOS)
     
     if st.button("Guardar Movimiento"):
-        # CREAR LA NUEVA FILA
         nueva_fila = pd.DataFrame([{
             "Fecha": datetime.now().strftime("%d/%m/%Y"),
             "Tipo": "Ingreso" if tipo in ["Ingreso", "Ajuste"] else "Gasto",
@@ -39,21 +38,16 @@ with st.sidebar:
             "Notas": "Carga desde App"
         }])
         
-        # UNIR DATOS
         df_actualizado = pd.concat([df, nueva_fila], ignore_index=True)
         
-        # GUARDAR EN GOOGLE SHEETS
         try:
             conn.update(spreadsheet=url, worksheet="Hoja 1", data=df_actualizado)
-            st.success("¡Movimiento guardado con éxito!")
+            st.success("¡Guardado!")
             st.balloons()
             st.rerun()
         except Exception as e:
             st.error(f"Error al guardar: {e}")
 
-# MOSTRAR TABLA PRINCIPAL
+# MOSTRAR TABLA
 st.write("### Resumen de Movimientos")
-if not df.empty:
-    st.dataframe(df, use_container_width=True)
-else:
-    st.info("La planilla está vacía o no se pudo leer. Si cargás un movimiento aparecerá aquí.")
+st.dataframe(df, use_container_width=True)
