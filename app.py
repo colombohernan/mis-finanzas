@@ -5,7 +5,7 @@ from datetime import datetime
 # --- CONFIGURACIÓN DE LA PLANILLA ---
 # REEMPLAZA ESTE LINK por el que copiaste de tu Google Sheets
 # Importante: El link debe terminar en /export?format=csv para que funcione
-URL_ORIGINAL = https://docs.google.com/spreadsheets/d/1itclMhNivPPL4SAWCmGWnOe4Xtx3Xvs_jM4mCzxLThs/edit?gid=0#gid=0
+URL_ORIGINAL = "https://docs.google.com/spreadsheets/d/1itclMhNivPPL4SAWCmGWnOe4Xtx3Xvs_jM4mCzxLThs/edit?gid=0#gid=0"
 SHEET_URL = URL_ORIGINAL.split('/edit')[0] + "/export?format=csv"
 
 st.set_page_config(page_title="Finanzas Hernán", layout="wide")
@@ -61,4 +61,5 @@ with col_izq:
 with col_der:
     st.subheader("Historial (Desde Google Sheets)")
     st.dataframe(df.sort_index(ascending=False).head(15), use_container_width=True, hide_index=True)
+
 
