@@ -1,53 +1,41 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-import pandas as pd
-from datetime import datetime
 
-st.set_page_config(page_title="Finanzas Hernán", layout="wide")
+st.title("Gestión de Finanzas - 4GO Academy")
 
-# Usamos solo el ID de la planilla para evitar errores de caracteres raros
-SPREADSHEET_ID = "1itclMhNivPPL4SAWCmGWnOe4Xtx3Xvs_jM4mCzxLThs"
-# Construimos la URL de exportación básica
-url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit#gid=0"
-
+# Conectamos usando la cuenta de servicio (Secrets)
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# LEER DATOS - Si falla, creamos un DataFrame vacío para que no veas el error rojo
-try:
-    df = conn.read(spreadsheet=url, worksheet="Hoja 1", ttl="0")
-except Exception:
-    df = pd.DataFrame(columns=["Fecha", "Tipo", "Categoría", "Importe", "Medio de Pago", "Notas"])
+# Leemos los datos de la pestaña "BD"
+# Cambiamos 'BD' por el nombre exacto de tu pestaña si es necesario
+df = conn.read(worksheet="BD", ttl=0)
 
-BANCOS = ["SANTANDER", "BBVA", "CUENTA DNI", "MERCADO PAGO", "VISA SANTANDER", "VISA BBVA", "MASTER MP", "CREDICCOP"]
+st.write("### Últimos registros")
+st.dataframe(df.tail())
 
-st.title("💸 Mis Finanzas Pro")
-
-with st.sidebar:
-    st.header("📝 Cargar o Ajustar")
-    tipo = st.radio("Tipo", ["Gasto", "Ingreso", "Ajuste"], horizontal=True)
-    monto = st.number_input("Importe ($)", min_value=0.0)
-    medio = st.selectbox("Banco/Tarjeta", BANCOS)
+st.sidebar.header("Agregar Nuevo Registro")
+with st.sidebar.form("formulario"):
+    fecha = st.date_input("Fecha")
+    detalle = st.text_input("Concepto")
+    punto_venta = st.selectbox("Punto de Venta", ["MEDELLÍN", "BOGOTÁ"])
+    valor = st.number_input("Valor ($)", min_value=0)
     
-    if st.button("Guardar Movimiento"):
-        nueva_fila = pd.DataFrame([{
-            "Fecha": datetime.now().strftime("%d/%m/%Y"),
-            "Tipo": "Ingreso" if tipo in ["Ingreso", "Ajuste"] else "Gasto",
-            "Categoría": tipo.upper(),
-            "Importe": monto,
-            "Medio de Pago": medio,
-            "Notas": "Carga desde App"
-        }])
-        
-        df_actualizado = pd.concat([df, nueva_fila], ignore_index=True)
-        
-        try:
-            conn.update(spreadsheet=url, worksheet="Hoja 1", data=df_actualizado)
-            st.success("¡Guardado!")
-            st.balloons()
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error al guardar: {e}")
+    boton = st.form_submit_button("Guardar Registro")
 
-# MOSTRAR TABLA
-st.write("### Resumen de Movimientos")
-st.dataframe(df, use_container_width=True)
+if boton:
+    # Creamos la nueva fila con los nombres exactos de tus columnas
+    # Según tu archivo son: FECHATRA, VLR, P. VENTA, CONCEPTO
+    nueva_fila = {
+        "FECHATRA": str(fecha),
+        "VLR": valor,
+        "P. VENTA": punto_venta,
+        "CONCEPTO": detalle
+    }
+    
+    # Agregamos la fila al final
+    df = df._append(nueva_fila, ignore_index=True)
+    
+    # SUBIMOS LOS DATOS A GOOGLE SHEETS
+    conn.update(worksheet="BD", data=df)
+    st.success("¡Registro guardado exitosamente!")
+    st.rerun()
